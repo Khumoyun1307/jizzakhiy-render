@@ -35,10 +35,16 @@ if (-not (Test-Path "$Ep\01_script\scenes.json")) { throw "No episode at $Ep" }
 $Scenes = @($Scenes | ForEach-Object { $_ -split "[,\s]+" } | Where-Object { $_ } | ForEach-Object { $_.ToUpper() })
 $Csv = $Scenes -join ","
 
-function Run([string]$exe, [string[]]$argv) {
-  $ErrorActionPreference = "Continue"   # native stderr (git/gh progress) is not an error
-  & $exe @argv 2>&1 | ForEach-Object { "$_" }
-  if ($LASTEXITCODE -ne 0) { throw "$exe $($argv -join ' ') failed ($LASTEXITCODE)" }
+function Run([string]$exe, [string[]]$argv, [int]$tries = 4, [string]$cleanDir = "") {
+  # native stderr (git/gh progress) is not an error; retry through transient network failures
+  $ErrorActionPreference = "Continue"
+  for ($k = 1; $k -le $tries; $k++) {
+    if ($cleanDir -and (Test-Path $cleanDir)) { Remove-Item -Recurse -Force $cleanDir }
+    $out = & $exe @argv 2>&1 | ForEach-Object { "$_" }
+    if ($LASTEXITCODE -eq 0) { return $out }
+    if ($k -lt $tries) { Write-Host "retry ${k}: $exe $($argv[0..1] -join ' ') ($($out | Select-Object -Last 1))"; Start-Sleep -Seconds (5 * $k) }
+  }
+  throw "$exe $($argv -join ' ') failed ($LASTEXITCODE): $($out -join "`n")"
 }
 function Mirror([string]$src, [string]$dst, [string[]]$xd = @(), [string[]]$xf = @()) {
   $a = @($src, $dst, "/MIR", "/NFL", "/NDL", "/NJH", "/NJS", "/NP", "/R:1", "/W:1")
@@ -56,13 +62,13 @@ function CopyFile([string]$src, [string]$dst) {
 # ---------------------------------------------------------------- 1. temp clone of the render repo
 $tmp = Join-Path $env:TEMP ("jz-render-" + [guid]::NewGuid().ToString("N").Substring(0, 8))
 Write-Host "Cloning $Repo -> $tmp"
-Run gh @("repo", "clone", $Repo, $tmp, "--", "--depth", "1", "--quiet")
+Run gh @("repo", "clone", $Repo, $tmp, "--", "--depth", "1", "--quiet") -cleanDir $tmp | Out-Null
 Push-Location $tmp
 try {
   # push with the gh login only (empty helper line resets helpers from the global config)
   Add-Content -Path "$tmp\.git\config" -Value "[credential]`n`thelper =`n`thelper = !gh auth git-credential"
   Run git @("config", "core.autocrlf", "input")   # repo stores LF (bash scripts run on Linux)
-  $uid = (gh api user --jq .id); $login = (gh api user --jq .login)
+  $uid = Run gh @("api", "user", "--jq", ".id"); $login = Run gh @("api", "user", "--jq", ".login")
   Run git @("config", "user.name", $login)
   Run git @("config", "user.email", "$uid+$login@users.noreply.github.com")
 
@@ -157,18 +163,23 @@ Run gh @("workflow", "run", "render.yml", "-R", $Repo, "--ref", "ep/$Episode", "
 $run = $null
 for ($i = 0; $i -lt 30 -and -not $run; $i++) {
   Start-Sleep -Seconds 3
-  $list = (gh run list -R $Repo --workflow render.yml --branch "ep/$Episode" --event workflow_dispatch --limit 5 --json databaseId,createdAt,url | ConvertFrom-Json)
+  $ErrorActionPreference = "Continue"   # retry through transient network errors
+  $list = (gh run list -R $Repo --workflow render.yml --branch "ep/$Episode" --event workflow_dispatch --limit 5 --json databaseId,createdAt,url 2>$null | ConvertFrom-Json)
+  $ErrorActionPreference = "Stop"
   $run = $list | Where-Object { ([datetime]$_.createdAt).ToUniversalTime() -ge $since } | Select-Object -First 1
 }
 if (-not $run) { throw "Could not find the workflow run" }
 Write-Host "Run: $($run.url)"
 if ($NoWait) { return }
 $ErrorActionPreference = "Continue"
-gh run watch $run.databaseId -R $Repo --interval 30 --exit-status 2>&1 | Out-Null
-$ok = ($LASTEXITCODE -eq 0)
+do {
+  gh run watch $run.databaseId -R $Repo --interval 30 2>&1 | Out-Null
+  $st = (gh run view $run.databaseId -R $Repo --json status,conclusion 2>$null | ConvertFrom-Json)
+} while (-not $st -or $st.status -ne "completed")
+$ok = ($st.conclusion -eq "success")
 
 # ---------------------------------------------------------------- 5. timing summary (real numbers from the API)
-$jobs = (gh run view $run.databaseId -R $Repo --json jobs | ConvertFrom-Json).jobs
+$jobs = ((Run gh @("run", "view", "$($run.databaseId)", "-R", $Repo, "--json", "jobs")) -join "`n" | ConvertFrom-Json).jobs
 $rj = @($jobs | Where-Object { $_.name -match '^S\d' -and $_.startedAt -and $_.completedAt })
 $peak = 0
 foreach ($j in $rj) {
@@ -186,8 +197,8 @@ Write-Host "Peak concurrent render jobs: $peak"
 $sceneDir = if ($OutDir) { Join-Path $OutDir "scenes" } else { "$Ep\02_visuals\scenes" }
 $editDir = if ($OutDir) { Join-Path $OutDir "04_edit" } else { "$Ep\04_edit" }
 $dl = Join-Path $env:TEMP ("jz-dl-" + [guid]::NewGuid().ToString("N").Substring(0, 8))
-gh run download $run.databaseId -R $Repo -D $dl 2>&1 | ForEach-Object { "$_" }
 $ErrorActionPreference = "Stop"
+Run gh @("run", "download", "$($run.databaseId)", "-R", $Repo, "-D", $dl) | Out-Null
 Get-ChildItem $dl -Directory -Filter "scene-*" | ForEach-Object {
   New-Item -ItemType Directory -Force $sceneDir | Out-Null
   Copy-Item "$($_.FullName)\*.mp4" $sceneDir -Force
