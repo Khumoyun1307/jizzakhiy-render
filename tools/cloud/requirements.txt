@@ -1,0 +1,4 @@
+# Same versions as the lab's local .venv (manim scenes + assembly)
+manim==0.22.1
+ManimPango==0.7.1
+numpy==2.5.5

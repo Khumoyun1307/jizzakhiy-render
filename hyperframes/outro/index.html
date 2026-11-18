@@ -1,0 +1,144 @@
+<!doctype html>
+<html
+  lang="en"
+  data-resolution="landscape"
+  data-composition-variables='[
+    {"id":"lesson","type":"string","label":"Current lesson number","default":"38"},
+    {"id":"next_lesson","type":"string","label":"Next lesson number","default":"39"},
+    {"id":"next_title","type":"string","label":"Next lesson title","default":"Preparing a DFA for State Elimination"},
+    {"id":"course","type":"string","label":"Course","default":"Theory of Computation"},
+    {"id":"style","type":"enum","label":"Style","default":"brand","options":[{"value":"brand","label":"Brand: navy, JA logo, teal (COURSE.md)"},{"value":"series","label":"Series: Lesson 37-41 look (navy, gold, serif)"}]}
+  ]'
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      @font-face { font-family: "Inter"; src: url("assets/fonts/Inter-Regular.ttf"); font-weight: 400; }
+      @font-face { font-family: "Inter"; src: url("assets/fonts/Inter-Medium.ttf"); font-weight: 500; }
+      @font-face { font-family: "Inter"; src: url("assets/fonts/Inter-SemiBold.ttf"); font-weight: 600; }
+      @font-face { font-family: "Inter"; src: url("assets/fonts/Inter-Bold.ttf"); font-weight: 700; }
+      @font-face { font-family: "KaTeX_Main"; src: url("assets/fonts/KaTeX_Main-Regular.woff2"); font-weight: 400; }
+      :root {
+        --navy-thumb: #0a1837;
+        --navy-series: #13203c;
+        --panel: #1f2e55;
+        --teal-pill: #0acdba;
+        --pill-text: #081b36;
+        --cream: #fbf4e5;
+        --ice: #bad0e9;
+        --header: #aab7d1;
+        --gold: #c9a227;
+        --accent: var(--teal-pill);
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+      #outro { width: 100%; height: 100%; position: relative; overflow: hidden; font-family: "Inter", sans-serif; }
+      #outro.series { --accent: var(--gold); }
+      .bg { position: absolute; inset: 0; background: var(--navy-thumb); }
+      .series .bg { background: var(--navy-series); }
+      .arcs { position: absolute; inset: 0; }
+      .series .arcs, .series .logo { display: none; }
+      .brand .goldbar { display: none; }
+      .goldbar { position: absolute; left: 0; top: 0; bottom: 0; width: 14px; background: var(--gold); }
+      .logo { position: absolute; left: 150px; top: 96px; height: 120px; }
+      .header { position: absolute; left: 150px; top: 150px; font-size: 26px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--header); white-space: pre; }
+      .brand .header { display: none; }
+      .next { position: absolute; left: 150px; width: 960px; top: 330px; }
+      .kicker { font-size: 30px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); }
+      .nextpanel { margin-top: 26px; }
+      .series .nextpanel { background: var(--panel); border-radius: 8px; padding: 34px 40px 40px; }
+      .pill { display: inline-block; background: var(--teal-pill); color: var(--pill-text); font-weight: 700; font-size: 46px; line-height: 1; padding: 16px 28px 18px; border-radius: 16px; }
+      .series .pill { display: none; }
+      .ntitle { margin-top: 26px; color: var(--cream); font-weight: 700; font-size: 76px; line-height: 1.1; letter-spacing: -0.02em; }
+      .series .ntitle { margin-top: 0; font-family: "KaTeX_Main", serif; font-weight: 400; color: #f8fcff; font-size: 68px; line-height: 1.2; letter-spacing: 0; }
+      .card {
+        position: absolute; left: 1220px; top: 300px; width: 560px; height: 480px;
+        background: rgba(255, 255, 255, 0.06); border: 2px solid rgba(186, 208, 233, 0.22); border-radius: 22px;
+        display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 40px;
+      }
+      .avatar { width: 150px; height: 150px; border-radius: 50%; background: var(--navy-thumb); border: 4px solid var(--accent); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+      .avatar img { width: 118px; }
+      .cname { margin-top: 24px; color: var(--cream); font-size: 40px; font-weight: 700; }
+      .csub { margin-top: 8px; color: var(--ice); font-size: 28px; font-weight: 500; }
+      .btnwrap { margin-top: 34px; position: relative; width: 340px; height: 84px; }
+      .btn { position: absolute; inset: 0; border-radius: 42px; display: flex; align-items: center; justify-content: center; gap: 16px; font-size: 32px; font-weight: 700; letter-spacing: 0.06em; }
+      .btn.sub { background: #e5322d; color: #fff; }
+      .btn.done { background: rgba(255, 255, 255, 0.16); color: var(--cream); opacity: 0; }
+      .bell { width: 34px; height: 34px; }
+      .rule { position: absolute; left: 150px; top: 958px; width: 96px; height: 6px; background: var(--accent); }
+      .footer { position: absolute; right: 150px; top: 944px; color: var(--header); font-size: 28px; font-weight: 500; }
+      .fade { position: absolute; inset: 0; background: #000; opacity: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="outro" class="brand" data-composition-id="outro" data-start="0" data-duration="9" data-width="1920" data-height="1080">
+      <div class="bg"></div>
+      <svg class="arcs" data-layout-allow-overflow viewBox="0 0 1920 1080" fill="none" stroke="#2a3d66" stroke-width="2" opacity="0.55">
+        <circle cx="1930" cy="-40" r="300" />
+        <circle cx="1930" cy="-40" r="420" />
+        <circle cx="1930" cy="-40" r="540" />
+        <circle cx="-40" cy="1120" r="230" />
+        <circle cx="-40" cy="1120" r="350" />
+      </svg>
+      <div class="goldbar"></div>
+      <img class="logo" src="assets/ja_logo_lockup.png" alt="Jizzakhiy Academy" />
+      <div class="header" id="hdr">Jizzakhiy Academy  ·  Theory of Computation</div>
+      <div class="next">
+        <div class="kicker" id="kick">Up next</div>
+        <div class="nextpanel" id="panel">
+          <div class="pill" id="pill">Lesson 39</div>
+          <div class="ntitle" id="ntitle">Preparing a DFA for State Elimination</div>
+        </div>
+      </div>
+      <div class="card" id="card">
+        <div class="avatar"><img src="assets/ja_logo_mark.png" alt="" /></div>
+        <div class="cname">Jizzakhiy Academy</div>
+        <div class="csub" id="csub">Theory of Computation</div>
+        <div class="btnwrap" id="btnwrap">
+          <div class="btn sub" id="btnsub">
+            <svg class="bell" id="bell" viewBox="0 0 24 24" fill="#fff"><path d="M12 22a2.5 2.5 0 0 0 2.45-2h-4.9A2.5 2.5 0 0 0 12 22zm7-6V11a7 7 0 0 0-5.5-6.84V3.5a1.5 1.5 0 0 0-3 0v.66A7 7 0 0 0 5 11v5l-2 2v1h18v-1l-2-2z"/></svg>
+            SUBSCRIBE
+          </div>
+          <div class="btn done" id="btndone">SUBSCRIBED &#10003;</div>
+        </div>
+      </div>
+      <div class="rule" id="rule"></div>
+      <div class="footer" id="foot">Thanks for watching</div>
+      <div class="fade" id="fade"></div>
+    </div>
+    <script>
+      const v = (window.__hyperframes && window.__hyperframes.getVariables && window.__hyperframes.getVariables()) || {};
+      const next = String(v.next_lesson ?? "39");
+      const ntitle = v.next_title ?? "Preparing a DFA for State Elimination";
+      const course = v.course ?? "Theory of Computation";
+      const style = v.style === "series" ? "series" : "brand";
+      document.getElementById("outro").className = style;
+      document.getElementById("pill").textContent = "Lesson " + next;
+      document.getElementById("ntitle").textContent = style === "series" ? "Lesson " + next + " — " + ntitle : ntitle;
+      document.getElementById("hdr").textContent = "Jizzakhiy Academy  ·  " + course;
+      document.getElementById("csub").textContent = course;
+      if (ntitle.length > 48) document.getElementById("ntitle").style.fontSize = style === "series" ? "58px" : "64px";
+
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo(".arcs", { opacity: 0 }, { opacity: 0.55, duration: 1.2, ease: "power2.out" }, 0);
+      tl.fromTo(".goldbar", { scaleY: 0, transformOrigin: "50% 0%" }, { scaleY: 1, duration: 0.7, ease: "power3.out" }, 0);
+      tl.fromTo(".logo", { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.6, ease: "power3.out" }, 0.1);
+      tl.fromTo("#hdr", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5 }, 0.15);
+      tl.fromTo("#kick", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 0.35);
+      tl.fromTo("#panel", { opacity: 0, y: 30 }, { opacity: 1, y: 0, duration: 0.7, ease: "power3.out" }, 0.55);
+      tl.fromTo("#rule", { scaleX: 0, transformOrigin: "0% 50%" }, { scaleX: 1, duration: 0.6, ease: "power3.inOut" }, 0.9);
+      tl.fromTo("#card", { opacity: 0, x: 60 }, { opacity: 1, x: 0, duration: 0.8, ease: "power3.out" }, 1.4);
+      // subscribe "press" at 3.6 s, then bell ring
+      tl.to("#btnwrap", { scale: 0.93, duration: 0.12, ease: "power2.in" }, 3.6);
+      tl.to("#btnwrap", { scale: 1, duration: 0.25, ease: "back.out(2)" }, 3.72);
+      tl.to("#btnsub", { opacity: 0, duration: 0.2 }, 3.72);
+      tl.to("#btndone", { opacity: 1, duration: 0.2 }, 3.72);
+      tl.fromTo("#foot", { opacity: 0 }, { opacity: 1, duration: 0.6 }, 2.2);
+      tl.fromTo("#fade", { opacity: 0 }, { opacity: 1, duration: 0.6, ease: "power1.in" }, 8.4);
+      window.__timelines["outro"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

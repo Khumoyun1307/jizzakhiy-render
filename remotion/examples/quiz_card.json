@@ -1,0 +1,17 @@
+{
+  "lesson": 38, "theme": "teal",
+  "component": "QuizCard",
+  "data": {
+    "question": "Which NFA recognizes $L(\\emptyset^{*})$?",
+    "options": [
+      "An NFA with no accept states",
+      "One state that is both start and accept",
+      "Two states joined by an $\\varepsilon$-arrow"
+    ],
+    "correct": 1,
+    "thinkAt": 1.5,
+    "countdown": 5,
+    "answer": "One accepting start state",
+    "reason": "$\\emptyset^{*} = \\{\\varepsilon\\}$: the star always contains the empty string."
+  }
+}

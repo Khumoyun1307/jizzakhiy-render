@@ -1,0 +1,5 @@
+{
+  "lesson": 38, "theme": "teal", "durationSec": 5,
+  "component": "LessonSlide",
+  "data": { "layout": "statement", "kicker": "Lesson 38 · Overview", "text": "Every regular expression $R$ can be turned into an **NFA** $N$ with $L(N) = L(R)$.", "source": "Sipser, Lemma 1.55" }
+}

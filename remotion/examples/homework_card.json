@@ -1,0 +1,13 @@
+{
+  "lesson": 38, "theme": "teal", "durationSec": 11,
+  "component": "HomeworkCard",
+  "data": {
+    "problem": ["Use the construction from this lesson to build an NFA for", "$$(a \\cup b)^{*}aba$$"],
+    "promptAt": 1.2,
+    "solution": [
+      { "text": "Base NFAs for $a$ and $b$, then union: new start with $\\varepsilon$-arrows", "at": 5 },
+      { "text": "Star: new accepting start state, $\\varepsilon$-arrows back from old accepts", "at": 6.5 },
+      { "text": "Concatenate with $a$, $b$, $a$ using $\\varepsilon$-arrows", "at": 8 }
+    ]
+  }
+}

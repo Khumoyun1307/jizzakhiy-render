@@ -1,0 +1,123 @@
+<!doctype html>
+<html
+  lang="en"
+  data-resolution="landscape"
+  data-composition-variables='[
+    {"id":"lesson","type":"string","label":"Lesson number","default":"38"},
+    {"id":"title","type":"string","label":"Lesson title","default":"Converting Regular Expressions to NFAs"},
+    {"id":"course","type":"string","label":"Course","default":"Theory of Computation"},
+    {"id":"style","type":"enum","label":"Style","default":"brand","options":[{"value":"brand","label":"Brand: navy, JA logo, teal pill (COURSE.md)"},{"value":"series","label":"Series: exact Lesson 37-41 intro (navy, gold bar, serif)"}]}
+  ]'
+>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=1920, height=1080" />
+    <script src="https://cdn.jsdelivr.net/npm/gsap@3.15.0/dist/gsap.min.js"></script>
+    <style>
+      @font-face { font-family: "Inter"; src: url("assets/fonts/Inter-Regular.ttf"); font-weight: 400; }
+      @font-face { font-family: "Inter"; src: url("assets/fonts/Inter-Medium.ttf"); font-weight: 500; }
+      @font-face { font-family: "Inter"; src: url("assets/fonts/Inter-SemiBold.ttf"); font-weight: 600; }
+      @font-face { font-family: "Inter"; src: url("assets/fonts/Inter-Bold.ttf"); font-weight: 700; }
+      @font-face { font-family: "KaTeX_Main"; src: url("assets/fonts/KaTeX_Main-Regular.woff2"); font-weight: 400; }
+      /* Sampled brand colours (see remotion/src/brand/brand.ts) */
+      :root {
+        --navy-thumb: #0a1837;
+        --navy-series: #13203c;
+        --teal-pill: #0acdba;
+        --pill-text: #081b36;
+        --cream: #fbf4e5;
+        --ice: #bad0e9;
+        --header: #aab7d1;
+        --gold: #c9a227;
+      }
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #000; }
+      #intro { width: 100%; height: 100%; position: relative; overflow: hidden; font-family: "Inter", sans-serif; }
+      .bg { position: absolute; inset: 0; background: var(--navy-thumb); }
+      .series .bg { background: var(--navy-series); }
+      .arcs { position: absolute; inset: 0; }
+      .series .arcs, .series .logo, .series .pill { display: none; }
+      .brand .goldbar, .brand .kicker-gold { display: none; }
+      .goldbar { position: absolute; left: 0; top: 0; bottom: 0; width: 14px; background: var(--gold); }
+      .logo { position: absolute; left: 150px; top: 96px; height: 120px; }
+      .header {
+        position: absolute; left: 150px; top: 150px;
+        font-size: 26px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--header);
+        white-space: pre;
+      }
+      .brand .header { top: 300px; color: var(--ice); font-size: 28px; }
+      .stack { position: absolute; left: 150px; right: 220px; top: 0; bottom: 0; display: flex; flex-direction: column; justify-content: center; }
+      .brand .stack { top: 120px; }
+      .pill {
+        align-self: flex-start; background: var(--teal-pill); color: var(--pill-text);
+        font-weight: 700; font-size: 54px; line-height: 1; padding: 18px 34px 20px; border-radius: 18px;
+      }
+      .kicker-gold { font-size: 34px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold); }
+      .title { margin-top: 34px; color: var(--cream); font-weight: 700; font-size: 104px; line-height: 1.06; letter-spacing: -0.02em; }
+      .series .title { font-family: "KaTeX_Main", serif; font-weight: 400; color: #f8fcff; font-size: 104px; line-height: 1.12; letter-spacing: 0; margin-top: 30px; }
+      .title .w { display: inline-block; }
+      .rule { position: absolute; left: 150px; top: 958px; width: 96px; height: 6px; background: var(--teal-pill); }
+      .series .rule { background: var(--gold); }
+      .fade { position: absolute; inset: 0; background: #000; opacity: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="intro" class="brand" data-composition-id="intro" data-start="0" data-duration="6" data-width="1920" data-height="1080">
+      <div class="bg"></div>
+      <svg class="arcs" data-layout-allow-overflow viewBox="0 0 1920 1080" fill="none" stroke="#2a3d66" stroke-width="2" opacity="0.55">
+        <circle cx="1930" cy="-40" r="300" />
+        <circle cx="1930" cy="-40" r="420" />
+        <circle cx="1930" cy="-40" r="540" />
+        <circle cx="-40" cy="1120" r="230" />
+        <circle cx="-40" cy="1120" r="350" />
+      </svg>
+      <div class="goldbar"></div>
+      <img class="logo" src="assets/ja_logo_lockup.png" alt="Jizzakhiy Academy" />
+      <div class="header" id="hdr">Jizzakhiy Academy  ·  Theory of Computation</div>
+      <div class="stack">
+        <div class="pill" id="pill">Lesson 38</div>
+        <div class="kicker-gold" id="kick">Lesson 38</div>
+        <div class="title" id="title"></div>
+      </div>
+      <div class="rule" id="rule"></div>
+      <div class="fade" id="fade"></div>
+    </div>
+    <script>
+      const v = (window.__hyperframes && window.__hyperframes.getVariables && window.__hyperframes.getVariables()) || {};
+      const lesson = String(v.lesson ?? "38");
+      const title = v.title ?? "Converting Regular Expressions to NFAs";
+      const course = v.course ?? "Theory of Computation";
+      const style = v.style === "series" ? "series" : "brand";
+      const root = document.getElementById("intro");
+      root.className = style;
+      document.getElementById("pill").textContent = "Lesson " + lesson;
+      document.getElementById("kick").textContent = "Lesson " + lesson;
+      document.getElementById("hdr").textContent = style === "series" ? "Jizzakhiy Academy  ·  " + course : course;
+      const t = document.getElementById("title");
+      title.split(/\s+/).forEach((w, i) => {
+        const s = document.createElement("span");
+        s.className = "w";
+        s.textContent = w;
+        t.appendChild(s);
+        t.appendChild(document.createTextNode(" "));
+      });
+      // long titles: shrink to fit two-three lines
+      if (title.length > 44) t.style.fontSize = (style === "series" ? 92 : 92) + "px";
+      if (title.length > 64) t.style.fontSize = "80px";
+
+      const tl = gsap.timeline({ paused: true });
+      tl.fromTo(".arcs", { opacity: 0, scale: 0.96, transformOrigin: "100% 0%" }, { opacity: 0.55, scale: 1, duration: 1.6, ease: "power2.out" }, 0.2);
+      tl.fromTo(".goldbar", { scaleY: 0, transformOrigin: "50% 0%" }, { scaleY: 1, duration: 0.7, ease: "power3.out" }, 0.15);
+      tl.fromTo(".logo", { opacity: 0, x: -24 }, { opacity: 1, x: 0, duration: 0.6, ease: "power3.out" }, 0.1);
+      tl.fromTo("#hdr", { opacity: 0, y: 10 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 0.25);
+      tl.fromTo("#pill", { opacity: 0, scale: 0.8, transformOrigin: "0% 50%" }, { opacity: 1, scale: 1, duration: 0.5, ease: "back.out(1.8)" }, 0.75);
+      tl.fromTo("#kick", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" }, 0.75);
+      tl.fromTo("#title .w", { opacity: 0, y: 34 }, { opacity: 1, y: 0, duration: 0.6, ease: "power3.out", stagger: 0.07 }, 1.0);
+      tl.fromTo("#rule", { scaleX: 0, transformOrigin: "0% 50%" }, { scaleX: 1, duration: 0.6, ease: "power3.inOut" }, 1.6);
+      // hold, then fade to black like the published intros
+      tl.fromTo("#fade", { opacity: 0 }, { opacity: 1, duration: 0.5, ease: "power1.in" }, 5.5);
+      window.__timelines["intro"] = tl;
+      tl.seek(0);
+    </script>
+  </body>
+</html>

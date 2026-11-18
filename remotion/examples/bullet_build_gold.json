@@ -1,0 +1,16 @@
+{
+  "lesson": 38, "theme": "gold", "durationSec": 9,
+  "component": "BulletBuild",
+  "data": {
+    "title": "Building the NFA inductively",
+    "bullets": [
+      { "text": "$R_1 \\cup R_2$: new start state with $\\varepsilon$-arrows to $N_1$ and $N_2$", "at": 0.5 },
+      { "text": "$R_1 \\circ R_2$: $\\varepsilon$-arrows from accept states of $N_1$ to the start of $N_2$", "at": 2.5 },
+      { "text": "$R_1^{*}$: new accepting start state, $\\varepsilon$-arrows back from accept states", "at": 4.5 },
+      { "text": "the **same** constructions as Lessons 33 and 34", "at": 6, "level": 1 }
+    ],
+    "math": "\\delta(q_0, \\varepsilon) = \\{q_1, q_2\\}",
+    "mathAt": 7,
+    "source": "Sipser, Theorems 1.45, 1.47, 1.49"
+  }
+}

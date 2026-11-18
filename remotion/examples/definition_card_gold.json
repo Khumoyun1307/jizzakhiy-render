@@ -1,0 +1,17 @@
+{
+  "lesson": 38, "theme": "gold", "durationSec": 8,
+  "component": "DefinitionCard",
+  "data": {
+    "kicker": "Definition 1.52",
+    "title": "Regular expression",
+    "lead": "$R$ is a **regular expression** if $R$ is",
+    "leadAt": 0.3,
+    "lines": [
+      { "text": "$a$ for some $a$ in the alphabet $\\Sigma$", "at": 1 },
+      { "text": "$\\varepsilon$, or $\\emptyset$", "at": 2 },
+      { "text": "$(R_1 \\cup R_2)$ or $(R_1 \\circ R_2)$, where $R_1, R_2$ are regular expressions", "at": 3 },
+      { "text": "$(R_1^{*})$, where $R_1$ is a regular expression", "at": 4 }
+    ],
+    "source": "Sipser, Definition 1.52"
+  }
+}

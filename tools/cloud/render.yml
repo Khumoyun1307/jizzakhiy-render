@@ -1,0 +1,180 @@
+name: render
+
+on:
+  workflow_dispatch:
+    inputs:
+      episode:
+        description: "Episode id (empty = taken from the ep/<id> branch name)"
+        required: false
+        default: ""
+      scenes:
+        description: "Comma-separated scene ids, e.g. S02,S11 (empty = every scene)"
+        required: false
+        default: ""
+      assemble:
+        description: "Assemble final.mp4 + captions + chapters after rendering"
+        type: boolean
+        default: false
+
+run-name: render ${{ inputs.episode || github.ref_name }} ${{ inputs.scenes || 'all' }}${{ inputs.assemble && ' +assemble' || '' }}
+
+permissions:
+  contents: read
+
+env:
+  PYTHONIOENCODING: utf-8
+  HYPERFRAMES_TELEMETRY: "0"
+  REMOTION_TELEMETRY: "0"
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.plan.outputs.matrix }}
+      count: ${{ steps.plan.outputs.count }}
+      episode: ${{ steps.plan.outputs.episode }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          sparse-checkout: |
+            tools
+            episodes/*/01_script
+          sparse-checkout-cone-mode: false
+      - id: plan
+        shell: bash
+        run: |
+          EP="${{ inputs.episode }}"
+          if [ -z "$EP" ]; then EP="${GITHUB_REF_NAME#ep/}"; fi
+          python3 tools/cloud/plan.py "$EP" "${{ inputs.scenes }}" | tee -a "$GITHUB_OUTPUT"
+
+  render:
+    needs: plan
+    if: needs.plan.outputs.count != '0'
+    name: ${{ matrix.id }} (${{ matrix.type }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      max-parallel: 20
+      matrix: ${{ fromJSON(needs.plan.outputs.matrix) }}
+    env:
+      EP: ${{ needs.plan.outputs.episode }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Runner info
+        run: |
+          echo "nproc=$(nproc)"; lscpu | grep -E 'Model name|^CPU\(s\)'; free -h | head -2
+          echo "START $(date -u +%FT%TZ)"
+
+      # ---------- apt packages (downloaded .debs cached between runs)
+      - name: apt package list
+        id: apt
+        shell: bash
+        run: |
+          case "${{ matrix.type }}" in
+            manim) P="texlive-latex-base texlive-latex-recommended texlive-latex-extra texlive-fonts-recommended dvisvgm cm-super libcairo2-dev libpango1.0-dev pkg-config ffmpeg" ;;
+            hyperframes) P="ffmpeg" ;;
+            *) P="" ;;
+          esac
+          echo "pkgs=$P" >> "$GITHUB_OUTPUT"
+          echo "key=$(echo "$P" | md5sum | cut -c1-12)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        if: steps.apt.outputs.pkgs != ''
+        with:
+          path: ~/apt-archives
+          key: apt-${{ runner.os }}-${{ steps.apt.outputs.key }}-v1
+      - name: apt install
+        if: steps.apt.outputs.pkgs != ''
+        run: |
+          mkdir -p ~/apt-archives/partial
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            -o Dir::Cache::Archives="$HOME/apt-archives" ${{ steps.apt.outputs.pkgs }} > /dev/null
+          sudo chown -R "$USER" ~/apt-archives
+
+      # ---------- Manim (Python, LaTeX)
+      - uses: actions/setup-python@v5
+        if: matrix.type == 'manim'
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: tools/cloud/requirements.txt
+      - if: matrix.type == 'manim'
+        run: pip install -q -r tools/cloud/requirements.txt
+
+      # ---------- Remotion / HyperFrames (Node)
+      - uses: actions/setup-node@v4
+        if: matrix.type != 'manim'
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: remotion/package-lock.json
+      - if: matrix.type == 'slide'
+        working-directory: remotion
+        run: npm ci --no-audit --no-fund --loglevel=error
+      - if: matrix.type == 'hyperframes'
+        run: npx --yes hyperframes@0.9.59 browser ensure
+
+      - name: Render ${{ matrix.id }}
+        run: bash tools/cloud/render_scene.sh "$EP" "${{ matrix.id }}" "${{ matrix.type }}" out
+      - run: echo "END $(date -u +%FT%TZ)"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: scene-${{ matrix.id }}
+          path: out/${{ matrix.id }}.mp4
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 7
+
+  assemble:
+    needs: [plan, render]
+    if: ${{ !cancelled() && inputs.assemble && needs.render.result != 'failure' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    env:
+      EP: ${{ needs.plan.outputs.episode }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: ~/apt-archives
+          key: apt-${{ runner.os }}-ffmpeg-v1
+      - name: apt install ffmpeg
+        run: |
+          mkdir -p ~/apt-archives/partial
+          sudo rm -f /var/lib/man-db/auto-update
+          sudo apt-get update -qq
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq --no-install-recommends \
+            -o Dir::Cache::Archives="$HOME/apt-archives" ffmpeg > /dev/null
+          sudo chown -R "$USER" ~/apt-archives
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: tools/cloud/requirements.txt
+      - run: pip install -q numpy==2.5.5
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: scene-*
+          merge-multiple: true
+          path: scenes_cloud
+      - name: Assemble
+        run: |
+          echo "nproc=$(nproc)"
+          python tools/assemble.py "episodes/$EP" --scenes-dir scenes_cloud \
+            --fallback-dir "episodes/$EP/02_visuals/scenes" --out out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: final-${{ env.EP }}
+          path: |
+            out/final.mp4
+            out/captions.srt
+            out/chapters.txt
+            out/edit_log.md
+            out/av_check.txt
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 14

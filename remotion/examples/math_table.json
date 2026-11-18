@@ -1,0 +1,19 @@
+{
+  "lesson": 38, "theme": "teal", "durationSec": 8,
+  "component": "MathTable",
+  "data": {
+    "title": "Transition table of an NFA for $(ab)^{*}$",
+    "columns": ["State", "$a$", "$b$", "$\\varepsilon$"],
+    "colWidths": [1.3, 1, 1, 1],
+    "rowHeaders": true,
+    "rows": [
+      ["$\\to q_0$ (accept)", "$\\emptyset$", "$\\emptyset$", "$\\{q_1\\}$"],
+      ["$q_1$", "$\\{q_2\\}$", "$\\emptyset$", "$\\emptyset$"],
+      ["$q_2$", "$\\emptyset$", "$\\{q_3\\}$", "$\\emptyset$"],
+      ["$q_3$ (accept)", "$\\emptyset$", "$\\emptyset$", "$\\{q_1\\}$"]
+    ],
+    "rowAt": [0.5, 1.2, 1.9, 2.6],
+    "highlights": [ { "row": 1, "col": 1, "at": 4, "until": 5.5 }, { "row": 3, "at": 6 } ],
+    "caption": "Missing arrows go to $\\emptyset$"
+  }
+}

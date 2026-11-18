@@ -1,0 +1,5 @@
+{
+  "lesson": 38, "theme": "teal", "durationSec": 5,
+  "component": "LessonSlide",
+  "data": { "layout": "title", "kicker": "Lesson 38 · Regular Languages", "title": "Converting Regular Expressions to NFAs" }
+}

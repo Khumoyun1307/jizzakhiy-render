@@ -1,0 +1,16 @@
+{
+  "lesson": 38, "theme": "teal", "durationSec": 5,
+  "component": "LessonSlide",
+  "data": {
+    "layout": "content",
+    "title": "The three base cases",
+    "bullets": [
+      "$R = a$ for some $a \\in \\Sigma$: two states, one $a$-arrow",
+      "$R = \\varepsilon$: one state, start and accept",
+      "$R = \\emptyset$: one state, **no** accept states",
+      "- here $L(R) = \\emptyset$, so nothing is accepted"
+    ],
+    "math": "L(\\varepsilon) = \\{\\varepsilon\\} \\qquad L(\\emptyset) = \\emptyset",
+    "source": "Sipser, Lemma 1.55"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "lesson": 38, "theme": "gold", "durationSec": 9,
+  "component": "RecapSlide",
+  "data": {
+    "title": "Converting Regular Expressions to NFAs",
+    "takeaways": [
+      { "text": "Base cases: $a$, $\\varepsilon$ and $\\emptyset$ each get a tiny NFA", "at": 0.5 },
+      { "text": "$\\cup$, $\\circ$ and ${}^{*}$ reuse the closure constructions", "at": 1.8 },
+      { "text": "So every regular language is recognized by an NFA", "at": 3.1 }
+    ],
+    "upNext": { "lesson": 39, "title": "Preparing a DFA for State Elimination" },
+    "upNextAt": 5
+  }
+}
