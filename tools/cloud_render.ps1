@@ -145,7 +145,10 @@ try {
   if ($LASTEXITCODE -ne 0) { Run git @("commit", "-q", "-m", "Render inputs for $Episode") }
   Run git @("push", "-q", "-f", "origin", "HEAD:refs/heads/ep/$Episode")
 }
-finally { Pop-Location }
+finally {
+  Pop-Location
+  if (-not $DryRun) { Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue }
+}
 
 # ---------------------------------------------------------------- 4. trigger, wait
 $since = (Get-Date).ToUniversalTime().AddSeconds(-5)
@@ -154,12 +157,11 @@ Run gh @("workflow", "run", "render.yml", "-R", $Repo, "--ref", "ep/$Episode", "
 $run = $null
 for ($i = 0; $i -lt 30 -and -not $run; $i++) {
   Start-Sleep -Seconds 3
-  $run = gh run list -R $Repo --workflow render.yml --branch "ep/$Episode" --event workflow_dispatch --limit 5 --json databaseId,createdAt,url |
-    ConvertFrom-Json | Where-Object { ([datetime]$_.createdAt).ToUniversalTime() -ge $since } | Select-Object -First 1
+  $list = (gh run list -R $Repo --workflow render.yml --branch "ep/$Episode" --event workflow_dispatch --limit 5 --json databaseId,createdAt,url | ConvertFrom-Json)
+  $run = $list | Where-Object { ([datetime]$_.createdAt).ToUniversalTime() -ge $since } | Select-Object -First 1
 }
 if (-not $run) { throw "Could not find the workflow run" }
 Write-Host "Run: $($run.url)"
-Remove-Item -Recurse -Force $tmp -ErrorAction SilentlyContinue
 if ($NoWait) { return }
 $ErrorActionPreference = "Continue"
 gh run watch $run.databaseId -R $Repo --interval 30 --exit-status 2>&1 | Out-Null

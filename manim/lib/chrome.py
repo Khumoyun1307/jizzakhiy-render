@@ -2,7 +2,7 @@
 
     kicker  "THEORY OF COMPUTATION · LESSON 40"  Inter semibold, letter-spaced, body colour, left x=150 px
     title   Computer Modern serif, navy, with a short gold underline under its first word
-    footer  hairline rule at y=1000 px (x 150-1770), "Jizzakhiy Academy" left (bold navy), "<course> · Lesson N" right
+    footer  hairline rule at y=1000 px (x 150-1770), text centred at y=1024 (kept out of the 3% safe margin), "Jizzakhiy Academy" left (bold navy), "<course> · Lesson N" right
 
     chrome = SeriesChrome("Stage 1: the leaves", lesson=38, kicker="Worked example")
     self.add(chrome)              # or self.play(chrome.intro())
@@ -51,9 +51,9 @@ class SeriesChrome(VGroup):
         self.underline = Line([x0, y, 0], [x0 + w, y, 0], color=P.ACCENT, stroke_width=6)
         self.rule = Line(px(150, 1000), px(1770, 1000), color=P.RULE, stroke_width=2)
         self.brand = S.jz_text("Jizzakhiy Academy", size=21, weight="SEMIBOLD", color=P.INK)
-        self.brand.move_to(px(150, 1036), aligned_edge=LEFT)
+        self.brand.move_to(px(150, 1024), aligned_edge=LEFT)
         self.course = S.jz_text(f"{course}  ·  Lesson {lesson}", size=21, color=P.BODY)
-        self.course.move_to(px(1770, 1036), aligned_edge=RIGHT)
+        self.course.move_to(px(1770, 1024), aligned_edge=RIGHT)
         self.header = VGroup(self.kicker, self.title, self.underline)
         self.footer = VGroup(self.rule, self.brand, self.course)
         self.add(self.header, self.footer)

@@ -81,6 +81,20 @@ def _rot(v: np.ndarray, a: float) -> np.ndarray:
     return np.array([c * v[0] - s * v[1], s * v[0] + c * v[1], 0.0])
 
 
+class _RevealOnBegin(LaggedStart):
+    """LaggedStart that makes its hidden mobjects visible at begin(), not when the animation is constructed.
+    So `anim = d.build_states(...)` can be created early (e.g. before a wait) without anything popping in."""
+
+    def __init__(self, *anims, reveal=None, lag_ratio=0.15, **kw):
+        self._reveal_fn = reveal
+        super().__init__(*anims, lag_ratio=lag_ratio, **kw)
+
+    def begin(self):
+        if self._reveal_fn is not None:
+            self._reveal_fn()
+        super().begin()
+
+
 class _BezierEdge(TipableVMobject):
     def __init__(self, p0, p1, p2, p3, **kw):
         super().__init__(**kw)
@@ -327,8 +341,7 @@ class StateDiagram(VGroup):
 
     def reveal_start(self, s):
         a = self.start_arrows[s]
-        self._reveal(a)
-        return Create(a)
+        return _RevealOnBegin(Create(a), reveal=lambda: self._reveal(a))
 
     def _maybe_dash(self, path: VMobject, eps_only: bool) -> VMobject:
         if not (eps_only and self.spec.get("dash_epsilon")):
@@ -399,27 +412,28 @@ class StateDiagram(VGroup):
         return self
 
     def build_states(self, states: Iterable[str], lag: float = 0.15, start_arrow: bool = True) -> AnimationGroup:
-        anims = []
+        anims, mobs = [], []
         for s in states:
             n = self.nodes[s]
-            self._reveal(n)
+            mobs.append(n)
             parts = [Create(n.circle)]
             if n.inner is not None:
                 parts.append(Create(n.inner))
             parts.append(Write(n.label))
             anims.append(AnimationGroup(*parts))
             if start_arrow and s in self.start_arrows:
-                self._reveal(self.start_arrows[s])
+                mobs.append(self.start_arrows[s])
                 anims.append(Create(self.start_arrows[s]))
-        return LaggedStart(*anims, lag_ratio=lag)
+        # visibility is restored only when the animation begins (building it has no side effect)
+        return _RevealOnBegin(*anims, lag_ratio=lag, reveal=lambda: [self._reveal(m) for m in mobs])
 
     def build_edges(self, pairs: Iterable[tuple[str, str]], lag: float = 0.2) -> AnimationGroup:
-        anims = []
+        anims, mobs = [], []
         for p in pairs:
             e = self.edges[tuple(p)]
-            self._reveal(e)
+            mobs.append(e)
             anims.append(AnimationGroup(Create(e.path), Write(e.label), lag_ratio=0.5))
-        return LaggedStart(*anims, lag_ratio=lag)
+        return _RevealOnBegin(*anims, lag_ratio=lag, reveal=lambda: [self._reveal(m) for m in mobs])
 
     def build_edges_from(self, states: Iterable[str]) -> AnimationGroup:
         st = list(states)
