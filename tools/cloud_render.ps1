@@ -61,6 +61,7 @@ Push-Location $tmp
 try {
   # push with the gh login only (empty helper line resets helpers from the global config)
   Add-Content -Path "$tmp\.git\config" -Value "[credential]`n`thelper =`n`thelper = !gh auth git-credential"
+  Run git @("config", "core.autocrlf", "input")   # repo stores LF (bash scripts run on Linux)
   $uid = (gh api user --jq .id); $login = (gh api user --jq .login)
   Run git @("config", "user.name", $login)
   Run git @("config", "user.email", "$uid+$login@users.noreply.github.com")

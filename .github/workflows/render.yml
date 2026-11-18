@@ -113,7 +113,8 @@ jobs:
           cache-dependency-path: remotion/package-lock.json
       - if: matrix.type == 'slide'
         working-directory: remotion
-        run: npm ci --no-audit --no-fund --loglevel=error
+        # the lock file is made on Windows; npm ci rejects missing linux-only optional deps
+        run: npm ci --no-audit --no-fund --loglevel=error || npm install --no-save --no-audit --no-fund --loglevel=error
       - if: matrix.type == 'hyperframes'
         run: npx --yes hyperframes@0.9.59 browser ensure
 
