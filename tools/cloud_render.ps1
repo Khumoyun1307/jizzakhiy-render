@@ -10,8 +10,11 @@
   -Scenes     scene ids to render (default: every scene in 01_script/scenes.json)
   -Assemble   also build final.mp4 / captions.srt / chapters.txt / edit_log.md in the cloud
               (with -Scenes, the other scenes are taken from the local 02_visuals/scenes/*.mp4)
+  -QaPrep     only make 04_edit/transcript_words.json + 04_edit/frames/ for the existing 04_edit/final.mp4
+              (uploads final.mp4 + edit_log.md; the assemble step already does this for new masters)
   -OutDir     download into <OutDir>\scenes and <OutDir>\04_edit instead of the episode folder
   -PublishCode  also update the repo's main branch with the lab's current render code
+  -CodeOnly   with -PublishCode: update main and stop (no episode push, no run)
   -DryRun     build the temp clone, list what would be pushed, push nothing
   -NoWait     trigger the run and return (download later with: gh run download <id> -R <repo>)
 
@@ -22,11 +25,13 @@ param(
   [Parameter(Mandatory = $true)][string]$Episode,
   [string[]]$Scenes = @(),
   [switch]$Assemble,
+  [switch]$QaPrep,
   [string]$OutDir = "",
   [string]$Repo = "Khumoyun1307/jizzakhiy-render",
   [switch]$PublishCode,
   [switch]$NoWait,
-  [switch]$DryRun
+  [switch]$DryRun,
+  [switch]$CodeOnly
 )
 $ErrorActionPreference = "Stop"
 $Lab = Split-Path -Parent $PSScriptRoot
@@ -110,6 +115,7 @@ try {
       Run git @("push", "-q", "origin", "HEAD:main")
       Write-Host "main updated"
     }
+    if ($CodeOnly) { return }
   }
 
   # ---------------------------------------------------------------- 3. episode inputs -> branch ep/<id>
@@ -139,6 +145,12 @@ try {
       }
     }
   }
+  if ($QaPrep) {
+    foreach ($f in "final.mp4", "edit_log.md") {
+      if (-not (Test-Path "$Ep\04_edit\$f")) { throw "-QaPrep needs $Ep\04_edit\$f" }
+      CopyFile "$Ep\04_edit\$f" "$dst\04_edit\$f"
+    }
+  }
   Assert-Clean
   if ($DryRun) {
     Get-ChildItem -Recurse -File $tmp | Where-Object { $_.FullName -notmatch '\\\.git\\' } |
@@ -147,6 +159,7 @@ try {
     return
   }
   Run git @("add", "-A")
+  if ($QaPrep) { Run git @("add", "-f", "episodes/$Episode/04_edit") }
   git diff --cached --quiet
   if ($LASTEXITCODE -ne 0) { Run git @("commit", "-q", "-m", "Render inputs for $Episode") }
   Run git @("push", "-q", "-f", "origin", "HEAD:refs/heads/ep/$Episode")
@@ -159,7 +172,7 @@ finally {
 # ---------------------------------------------------------------- 4. trigger, wait
 $since = (Get-Date).ToUniversalTime().AddSeconds(-5)
 $asm = if ($Assemble) { "true" } else { "false" }
-Run gh @("workflow", "run", "render.yml", "-R", $Repo, "--ref", "ep/$Episode", "-f", "episode=$Episode", "-f", "scenes=$Csv", "-f", "assemble=$asm")
+Run gh @("workflow", "run", "render.yml", "-R", $Repo, "--ref", "ep/$Episode", "-f", "episode=$Episode", "-f", "scenes=$Csv", "-f", "assemble=$asm", "-f", "qa_prep_only=$(if ($QaPrep) { 'true' } else { 'false' })")
 $run = $null
 for ($i = 0; $i -lt 30 -and -not $run; $i++) {
   Start-Sleep -Seconds 3
@@ -204,9 +217,10 @@ Get-ChildItem $dl -Directory -Filter "scene-*" | ForEach-Object {
   Copy-Item "$($_.FullName)\*.mp4" $sceneDir -Force
   Write-Host "scene  -> $sceneDir\$($_.Name.Substring(6)).mp4"
 }
-Get-ChildItem $dl -Directory -Filter "final-*" | ForEach-Object {
+Get-ChildItem $dl -Directory | Where-Object { $_.Name -like "final-*" -or $_.Name -like "qa-*" } | ForEach-Object {
   New-Item -ItemType Directory -Force $editDir | Out-Null
-  Copy-Item "$($_.FullName)\*" $editDir -Force
+  if (Test-Path "$editDirrames") { Remove-Item -Recurse -Force "$editDirrames" }
+  Copy-Item "$($_.FullName)\*" $editDir -Recurse -Force
   Write-Host "final  -> $editDir"
 }
 Remove-Item -Recurse -Force $dl -ErrorAction SilentlyContinue
