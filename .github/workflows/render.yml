@@ -50,10 +50,7 @@ jobs:
           EP="${{ inputs.episode }}"
           if [ -z "$EP" ]; then EP="${GITHUB_REF_NAME#ep/}"; fi
           if [ "${{ inputs.qa_prep_only }}" = "true" ]; then
-            printf 'matrix={"include":[]}
-count=0
-episode=%s
-' "$EP" | tee -a "$GITHUB_OUTPUT"
+            printf 'matrix={"include":[]}\ncount=0\nepisode=%s\n' "$EP" | tee -a "$GITHUB_OUTPUT"
           else
             python3 tools/cloud/plan.py "$EP" "${{ inputs.scenes }}" | tee -a "$GITHUB_OUTPUT"
           fi
