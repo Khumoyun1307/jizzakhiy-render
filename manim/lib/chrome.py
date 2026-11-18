@@ -1,22 +1,29 @@
-"""Series slide chrome for Manim scenes (Lessons 37-41 look, measured from the L40 final video at 1080p):
+"""Series slide chrome for Manim scenes, matched pixel-for-pixel to the Remotion slides (and L37-L41):
+measured on 02_visuals/scenes/S05.mp4 (Lesson 38) at 1080p.
 
-    kicker  "THEORY OF COMPUTATION · LESSON 40"  Inter semibold, letter-spaced, body colour, left x=150 px
-    title   Computer Modern serif, navy, with a short gold underline under its first word
-    footer  hairline rule at y=1000 px (x 150-1770), text centred at y=1024 (kept out of the 3% safe margin), "Jizzakhiy Academy" left (bold navy), "<course> · Lesson N" right
+    kicker  "<SECTION> · LESSON 38"  Inter semibold, letter-spaced, body colour; cap top y=101, cap height 16 px, x=160
+    title   Computer Modern serif, navy; cap top y=141, cap height 53 px (baseline ~193), x=160
+    underline  gold, 96 x 6 px at x 160-256, y 219-224
+    footer  rule y=998-999 (x 160-1760); "Jizzakhiy Academy" (semibold navy) left and "<course> · Lesson N" right,
+            text box y 1024-1044 (22 px Inter)
 
     chrome = SeriesChrome("Stage 1: the leaves", lesson=38, kicker="Worked example")
-    self.add(chrome)              # or self.play(chrome.intro())
+    self.add(chrome)
     expr = ...; chrome.place_right(expr)   # header expression, right-aligned on the title row
 
-Compact variant (default) keeps the header inside the top 180 px so diagrams can use the rest of the frame.
+Calibration (manim Text): cap height = 1.40 x font_size  ->  22 px Inter = font_size 11.4.
+Tex: cap height ~= font_size px  ->  title font_size 53.
 """
 from __future__ import annotations
 
 import numpy as np
-from manim import DOWN, LEFT, RIGHT, UP, UL, FadeIn, Line, Tex, VGroup, Write, AnimationGroup
+from manim import LEFT, RIGHT, UL, UR, Line, Tex, VGroup
 
 from . import jz_style as S
 from .jz_style import P
+
+LEFT_X, RIGHT_X = 160, 1760
+TEXT_22PX = 11.4  # manim Text font_size that renders 22 px Inter (cap height 16 px)
 
 
 def px(x: float, y: float) -> np.ndarray:
@@ -29,38 +36,42 @@ def grid(x: float, y: float, unit: float = 120.0) -> np.ndarray:
     return px(x * unit, y * unit)
 
 
-def _spaced(s: str) -> str:
-    return " ".join(s.upper())
+def _tracked(s: str) -> str:
+    """Uppercase with letter tracking like the slides' CSS letter-spacing (U+2005 between letters)."""
+    return " ".join(s.upper())
+
+
+def kicker_text(section: str, lesson: int) -> str:
+    """Series wording: '<SECTION> · LESSON NN'."""
+    return _tracked(section) + "   ·   " + _tracked(f"Lesson {lesson}")
 
 
 class SeriesChrome(VGroup):
     def __init__(self, title_tex: str, lesson: int, kicker: str = "Theory of Computation",
-                 course: str = "Theory of Computation", title_size: float = 50, compact: bool = True):
+                 course: str = "Theory of Computation", title_size: float = 53, **_ignored):
         super().__init__()
-        left = 150
-        ky, ty = (52, 112) if compact else (110, 172)
-        self.kicker = S.jz_text(_spaced(kicker) + "  ·  " + _spaced(f"Lesson {lesson}"), size=19,
-                                weight="SEMIBOLD", color=P.BODY)
-        self.kicker.move_to(px(left, ky), aligned_edge=LEFT)
+        self.kicker = S.jz_text(kicker_text(kicker, lesson), size=TEXT_22PX, weight="SEMIBOLD", color=P.BODY)
+        self._cap_top(self.kicker, "L", 101)
         self.title = self._make_title(title_tex, title_size)
-        self.title.move_to(px(left, ty), aligned_edge=LEFT)
-        # gold underline as wide as the first word (the title is built as Tex(first_word, rest))
-        w = self.title[0].width
-        y = self.title.get_bottom()[1] - 0.12
-        x0 = self.title.get_left()[0]
-        self.underline = Line([x0, y, 0], [x0 + w, y, 0], color=P.ACCENT, stroke_width=6)
-        self.rule = Line(px(150, 1000), px(1770, 1000), color=P.RULE, stroke_width=2)
-        self.brand = S.jz_text("Jizzakhiy Academy", size=21, weight="SEMIBOLD", color=P.INK)
-        self.brand.move_to(px(150, 1024), aligned_edge=LEFT)
-        self.course = S.jz_text(f"{course}  ·  Lesson {lesson}", size=21, color=P.BODY)
-        self.course.move_to(px(1770, 1024), aligned_edge=RIGHT)
+        self.title.move_to(px(LEFT_X, 141), aligned_edge=UL)
+        self.underline = Line(px(LEFT_X, 221.5), px(LEFT_X + 96, 221.5), color=P.ACCENT, stroke_width=6)
+        self.rule = Line(px(LEFT_X, 998.5), px(RIGHT_X, 998.5), color=P.RULE, stroke_width=2)
+        self.brand = S.jz_text("Jizzakhiy Academy", size=TEXT_22PX, weight="SEMIBOLD", color=P.INK)
+        self.brand.move_to(px(LEFT_X, 1024), aligned_edge=UL)
+        self.course = S.jz_text(f"{course}  ·  Lesson {lesson}", size=TEXT_22PX, color=P.BODY)
+        self.course.move_to(px(RIGHT_X, 1024), aligned_edge=UR)
         self.header = VGroup(self.kicker, self.title, self.underline)
         self.footer = VGroup(self.rule, self.brand, self.course)
         self.add(self.header, self.footer)
 
-    def place_right(self, mob, x_right: float = 1770, y: float | None = None):
-        """Right-align a header element (e.g. the regular expression) on the title row."""
-        yy = self.title.get_center()[1] if y is None else px(0, y)[1]
+    @staticmethod
+    def _cap_top(mob, _ch, y):
+        # kicker is all caps/digits: its bounding-box top is the cap top
+        mob.move_to(px(LEFT_X, y), aligned_edge=UL)
+
+    def place_right(self, mob, x_right: float = RIGHT_X, y: float | None = None):
+        """Right-align a header element (e.g. the regular expression) on the title row (cap band 141-193)."""
+        yy = px(0, 167 if y is None else y)[1]
         mob.move_to([px(x_right, 0)[0] - mob.width / 2, yy, 0])
         return mob
 
