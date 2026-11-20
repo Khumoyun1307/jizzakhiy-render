@@ -88,7 +88,7 @@ try {
   Mirror "$Lab\tools\cloud" "$tmp\tools\cloud" @("__pycache__") @("*.log")
   New-Item -ItemType Directory -Force "$tmp\assets\images" | Out-Null
   Get-ChildItem "$Lab\assets\images\ja_logo*.png" | ForEach-Object { Copy-Item $_.FullName "$tmp\assets\images\" -Force }
-  foreach ($f in "assemble.py", "av_check.py", "cloud_render.ps1") { CopyFile "$Lab\tools\$f" "$tmp\tools\$f" }
+  foreach ($f in "assemble.py", "av_check.py", "qa_prep.py", "transcribe.py", "cloud_render.ps1") { CopyFile "$Lab\tools\$f" "$tmp\tools\$f" }
   CopyFile "$Lab\tools\cloud\render.yml" "$tmp\.github\workflows\render.yml"
   CopyFile "$Lab\tools\cloud\README.md" "$tmp\README.md"
   CopyFile "$Lab\tools\cloud\gitignore" "$tmp\.gitignore"
