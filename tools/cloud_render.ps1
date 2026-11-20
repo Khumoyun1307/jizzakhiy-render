@@ -17,6 +17,7 @@
   -CodeOnly   with -PublishCode: update main and stop (no episode push, no run)
   -DryRun     build the temp clone, list what would be pushed, push nothing
   -NoWait     trigger the run and return (download later with: gh run download <id> -R <repo>)
+  -KeepCloud  keep the run's artifacts and the ep/<episode> branch (by default both are deleted after a successful download)
 
 Pushes ONLY render code + the episode's render inputs (scenes.json, scene code, slide props, HyperFrames copy,
 03_audio clips/timings/words/blocks) to branch ep/<episode>. Uses the gh login (no tokens in files).
@@ -31,9 +32,12 @@ param(
   [switch]$PublishCode,
   [switch]$NoWait,
   [switch]$DryRun,
-  [switch]$CodeOnly
+  [switch]$CodeOnly,
+  [switch]$KeepCloud
 )
 $ErrorActionPreference = "Stop"
+# Owner decision 2026-11-17: never upload a finished video. Assemble in the cloud (-Assemble) instead; that job also makes the QA transcript and frames.
+if ($QaPrep) { throw "-QaPrep is disabled: it uploads a finished video. Re-assemble with -Assemble; that also produces transcript_words.json and frames/." }
 $Lab = Split-Path -Parent $PSScriptRoot
 $Ep = Join-Path $Lab "episodes\$Episode"
 if (-not (Test-Path "$Ep\01_script\scenes.json")) { throw "No episode at $Ep" }
@@ -219,9 +223,21 @@ Get-ChildItem $dl -Directory -Filter "scene-*" | ForEach-Object {
 }
 Get-ChildItem $dl -Directory | Where-Object { $_.Name -like "final-*" -or $_.Name -like "qa-*" } | ForEach-Object {
   New-Item -ItemType Directory -Force $editDir | Out-Null
+  $framesDir = Join-Path $editDir "frames"
+  if (Test-Path $framesDir) { Remove-Item -Recurse -Force $framesDir }
   if (Test-Path "$editDirrames") { Remove-Item -Recurse -Force "$editDirrames" }
   Copy-Item "$($_.FullName)\*" $editDir -Recurse -Force
   Write-Host "final  -> $editDir"
 }
 Remove-Item -Recurse -Force $dl -ErrorAction SilentlyContinue
+
+# ---------------------------------------------------------------- 7. cleanup: nothing lesson-specific stays in the public repo
+# Deleting the run removes its artifacts (scene/final videos) and logs; deleting the branch removes the pushed clips and code.
+# A failed run is kept so it can be debugged; rerun with -KeepCloud to keep a successful one too.
+if ($ok -and -not $KeepCloud) {
+  $ErrorActionPreference = "Continue"
+  gh run delete $run.databaseId -R $Repo 2>&1 | Out-Null
+  gh api -X DELETE "repos/$Repo/git/refs/heads/ep/$Episode" 2>&1 | Out-Null
+  Write-Host "cleanup: deleted run $($run.databaseId) (artifacts + logs) and branch ep/$Episode"
+}
 if (-not $ok) { throw "Workflow run failed: $($run.url)" }
